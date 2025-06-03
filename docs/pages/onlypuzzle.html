@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>The Only Puzzle</title>
+  <title>The Only Puzzle Game</title>
 </head>
 
 <body>
@@ -10,19 +10,21 @@
     <title>The only puzzle game you need to play.
     </title>
     <p>
-      All* puzzles are NP and can thus be reduced to the 3-SAT problem, see the <a
+      All* puzzles are NP and can thus be efficiently** reduced to the 3-SAT problem, see the <a
         href="https://en.wikipedia.org/wiki/Cook%E2%80%93Levin_theorem">Cook-Levin theorem</a>.
-      Therefore, if you ever think of playing some other puzzle game, just play this instead.
+      If you ever want to play some other puzzle game, you can therefore just play this instead.
       <br>
-      <t style="font-size: small"> *if the certificates have polynomial length and can be verified in
-        polynomial time, which is essentially required for a puzzle game to function</t>
+      <t style="font-size: small">*if the solution certificates have polynomial length and can be verified in
+        polynomial time, which is essentially required for a puzzle game to actually function<br>**in polynomial time,
+        note that
+        some polynomials can still get quite big</t>
     </p>
     <p> Rules: below you see a list of <i>clauses</i>, each of which consists of three <i>literals</i>, which look like
       either <b>i</b> or <b>!i</b> for some index i.
-      Using the checkboxes, you must find an assignment to all indices such that <b>in every clause at least one
+      Using the checkboxes, you must find a combination such that <b>in every clause at least one
         literal is <i>true</i></b>, where <b>i</b> is true if
-      the i-th checkbox is ticked and <b>!i</b> is the opposite, <b><i>false</i></b> literals and clauses
-      respectively are marked <t style="color: rgb(255, 0, 0)">red</t>. The generated formulas always have at least one
+      the i-th checkbox is checked and <b>!i</b> is the opposite (<b><i>false</i></b> literals and clauses
+      respectively are marked <t style="color: rgb(255, 0, 0)">red</t>). The generated formulas always have at least one
       solution.</p>
   </div>
   <div id="config">
@@ -36,29 +38,46 @@
   <script>
     let vars = 5
     let clauses = 256
+    let time = 0
+    let paused = false
+    let win_time = 0
     document.getElementById("variables").value = vars
     document.getElementById("clauses").value = clauses
     let formula = generate_formula()
-    draw_checkboxes()
-    draw_formula()
+    generate()
 
     function draw_formula() {
-      document.getElementById("formula").innerHTML = `<b style="font-size: larger">${display()}</b>`
+      document.getElementById("formula").innerHTML = `<b>${display_formula()}</b>`
     }
 
     function draw_checkboxes() {
       let html = ""
       for (let i = 0; i < vars; i++) {
-        html += `<input type="checkbox" id="x${i}" onchange="on_check()">${i},`
+        html += `<input type="checkbox" id="x${i}" onchange="on_check()">${i}${i < vars - 1 ? " " : ""}`
       }
       document.getElementById("checkboxes").innerHTML = html
     }
 
+    function draw_time() {
+      document.getElementById("time").innerHTML =
+        `Time: ${display_diff()}${paused ? "  <b>You win!</b>" : ""}`
+    }
+
+    function display_diff() {
+      let diff = paused ? win_time : new Date() - time
+      return `${Math.floor((diff / 1000 / 3600) % 24).toString()
+        .padStart(2, "0")}:${Math.floor((diff / 1000 / 60) % 60).toString()
+          .padStart(2, "0")}:${Math.floor((diff / 1000) % 60).toString()
+            .padStart(2, "0")}`
+    }
+
     function on_check() {
-      if (check()) {
-        alert(`You win! Variables: ${vars}, Clauses: ${clauses}`)
-      }
       draw_formula()
+      if (!paused && check()) {
+        paused = true
+        win_time = new Date() - time
+        display_time()
+      }
     }
 
     function generate_formula() {
@@ -79,10 +98,10 @@
       return output
     }
 
-    function display() {
+    function display_formula() {
       return formula.map(c =>
         `<t${eval_clause(c) ? "" : " style=\"background-color: rgba(255, 0, 0, 0.5)\""}>
-    ${"(" + c.map(l => `<t${query(l[0]) == l[1] ? "" : " style=\"color: rgb(255, 0, 0)\""}>${(l[1] ? "" : "!") + l[0]}</t>`)
+        ${"(" + c.map(l => `<t${query(l[0]) == l[1] ? "" : " style=\"color: rgb(255, 0, 0)\""}>${(l[1] ? "" : "!") + l[0]}</t>`)
           .reduce((s, t) => s + "," + t) + ")"
         }</t>`).reduce((s, t) => s + ", " + t)
     }
@@ -90,12 +109,16 @@
     function generate() {
       let clauses_input = parseInt(document.getElementById("clauses").value)
       let vars_input = parseInt(document.getElementById("variables").value)
-      if (!isNaN(clauses_input) && !isNaN(vars_input) && clauses_input >= 0 && vars_input >= 0) {
+      if (!isNaN(clauses_input) && !isNaN(vars_input) && clauses_input > 0 && vars_input > 0) {
+        time = new Date()
+        setInterval(draw_time, 500)
+        draw_time()
         clauses = clauses_input
         vars = vars_input
         draw_checkboxes()
         formula = generate_formula()
-        draw_formula()
+        paused = false
+        on_check()
       }
     }
 
@@ -108,7 +131,7 @@
     }
 
     function query(i) {
-      return document.querySelector(`#x${i}`).checked
+      return document.querySelector(`#x${i} `).checked
     }
 
     function eval_clause(clause) {
