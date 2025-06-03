@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>The Only Puzzle</title>
+</head>
+
+<body>
+  <div>
+    <title>The only puzzle game you need to play.
+    </title>
+    <p>
+      All* puzzles are NP and can thus be reduced to the 3-SAT problem, see the <a
+        href="https://en.wikipedia.org/wiki/Cook%E2%80%93Levin_theorem">Cook-Levin theorem</a>.
+      Therefore, if you ever think of playing some other puzzle game, just play this instead.
+      <br>
+      <t style="font-size: small"> *if the certificates have polynomial length and can be verified in
+        polynomial time, which is essentially required for a puzzle game to function</t>
+    </p>
+    <p> Rules: below you see a list of <i>clauses</i>, each of which consists of three <i>literals</i>, which look like
+      either <b>i</b> or <b>!i</b> for some index i.
+      Using the checkboxes, you must find an assignment to all indices such that <b>in every clause at least one
+        literal is <i>true</i></b>, where <b>i</b> is true if
+      the i-th checkbox is ticked and <b>!i</b> is the opposite, <b><i>false</i></b> literals and clauses
+      respectively are marked <t style="color: rgb(255, 0, 0)">red</t>. The generated formulas always have at least one
+      solution.</p>
+  </div>
+  <div id="config">
+    Variables: <input type=text id="variables" value="5"> &nbsp; Clauses: <input type=text id="clauses" value="256">
+    &nbsp;
+    <button type=button id="generate" onclick="generate()">Generate!</button>
+  </div><br>
+  <div id="time"></div>
+  <div id="checkboxes"></div>
+  <div id="formula"></div>
+  <script>
+    let vars = 5
+    let clauses = 256
+    document.getElementById("variables").value = vars
+    document.getElementById("clauses").value = clauses
+    let formula = generate_formula()
+    draw_checkboxes()
+    draw_formula()
+
+    function draw_formula() {
+      document.getElementById("formula").innerHTML = `<b style="font-size: larger">${display()}</b>`
+    }
+
+    function draw_checkboxes() {
+      let html = ""
+      for (let i = 0; i < vars; i++) {
+        html += `<input type="checkbox" id="x${i}" onchange="on_check()">${i},`
+      }
+      document.getElementById("checkboxes").innerHTML = html
+    }
+
+    function on_check() {
+      if (check()) {
+        alert(`You win! Variables: ${vars}, Clauses: ${clauses}`)
+      }
+      draw_formula()
+    }
+
+    function generate_formula() {
+      let solution = []
+      for (let i = 0; i < vars; i++) {
+        solution.push(coin())
+      }
+      let output = []
+      for (let i = 0; i < clauses; i++) {
+        let clause = [];
+        let key = randint(3)
+        for (let j = 0; j < 3; j++) {
+          let v = randint(vars)
+          clause.push([v, j == key ? solution[v] : coin()])
+        }
+        output.push(clause)
+      }
+      return output
+    }
+
+    function display() {
+      return formula.map(c =>
+        `<t${eval_clause(c) ? "" : " style=\"background-color: rgba(255, 0, 0, 0.5)\""}>
+    ${"(" + c.map(l => `<t${query(l[0]) == l[1] ? "" : " style=\"color: rgb(255, 0, 0)\""}>${(l[1] ? "" : "!") + l[0]}</t>`)
+          .reduce((s, t) => s + "," + t) + ")"
+        }</t>`).reduce((s, t) => s + ", " + t)
+    }
+
+    function generate() {
+      let clauses_input = parseInt(document.getElementById("clauses").value)
+      let vars_input = parseInt(document.getElementById("variables").value)
+      if (!isNaN(clauses_input) && !isNaN(vars_input) && clauses_input >= 0 && vars_input >= 0) {
+        clauses = clauses_input
+        vars = vars_input
+        draw_checkboxes()
+        formula = generate_formula()
+        draw_formula()
+      }
+    }
+
+    function coin() {
+      return Math.random() < 0.5
+    }
+
+    function randint(n) {
+      return Math.floor(Math.random() * n)
+    }
+
+    function query(i) {
+      return document.querySelector(`#x${i}`).checked
+    }
+
+    function eval_clause(clause) {
+      return clause.map(l => query(l[0]) == l[1]).reduce((p, q) => p || q)
+    }
+
+    function check() {
+      return formula.map(c => c.map(l => l[1] == document.querySelector(`#x${l[0]}`).checked).reduce((p, q) => p || q)).reduce((p, q) => p && q)
+    }
+
+  </script>
+</body>
+
+</html>
